@@ -7,8 +7,28 @@ const loadPlugins = require('gulp-load-plugins')
 const plugins = loadPlugins()
 const bs = browserSync.create()
 
+const data = {
+  menus: [
+    {
+      name: 'Home',
+      icon: 'aperture',
+      link: 'index.html'
+    },
+    {
+      name: 'Features',
+      link: 'features.html'
+    },
+    {
+      name: 'About',
+      link: 'about.html'
+    }
+  ],
+  pkg: require('./package.json'),
+  date: new Date()
+}
+
 const clean = () => {
-  return del(['dist', temp])
+  return del(['dist', 'dist'])
 }
 
 const style = () => {
@@ -29,7 +49,7 @@ const script = () => {
 const page = () => {
   return src('src/*.html', { base: 'src' })
     .pipe(plugins.swig({ data, defaults: { cache: false } })) // 防止模板缓存导致页面不能及时更新
-    .pipe(dest('temp'))
+    .pipe(dest('dist'))
     .pipe(bs.reload({ stream: true }))
 }
 
@@ -65,10 +85,10 @@ const serve = () => {
 
   bs.init({
     notify: false,
-    port: 2080,
+    port: 8080,
     // open: false,
     server: {
-      baseDir: ['temp', 'src', 'public'],
+      baseDir: ['dist', 'src', 'public'],
       routes: {
         '/node_modules': 'node_modules'
       }
@@ -76,8 +96,39 @@ const serve = () => {
   })
 }
 
+const useref = () => {
+  return src('dist/*.html', { base: 'dist' })
+    .pipe(plugins.useref({ searchPath: ['dist', '.'] }))
+    // html js css
+    .pipe(plugins.if(/\.js$/, plugins.uglify()))
+    .pipe(plugins.if(/\.css$/, plugins.cleanCss()))
+    .pipe(plugins.if(/\.html$/, plugins.htmlmin({
+      collapseWhitespace: true,
+      minifyCSS: true,
+      minifyJS: true
+    })))
+    .pipe(dest('dist'))
+}
+
+const compile = parallel(style, script, page)
+
+// 上线前执行的任务
+const build =  series(
+  clean,
+  parallel(
+    series(compile, useref),
+    image,
+    font,
+    extra
+  )
+)
+
+const start = series(compile, serve)
+const serve = series(compile, serve)
+
 module.exports = {
   clean,
-  style,
-  script
+  build,
+  start,
+  // serve
 }
