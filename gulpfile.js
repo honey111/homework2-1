@@ -1,6 +1,7 @@
 // 实现这个项目的构建任务
-const { src, dest, parallel, series, watch } = require('gulp')
+const { src, dest, parallel, series, watch, task } = require('gulp')
 const del = require('del')
+const eslint = require('gulp-eslint')
 const browserSync = require('browser-sync')
 const loadPlugins = require('gulp-load-plugins')
 
@@ -71,10 +72,19 @@ const extra = () => {
 }
 
 const lint = () => {
-  return src(['scripts/*.js'], { base: 'src' })
-  .pipe(plugins.eslint())
-  .pipe(eslint.format())
-  .pipe(eslint.failAterError());
+  return src('src/assets/scripts/*.js', { base: 'src' })
+    .pipe(plugins.babel({
+        presets: [require("@babel/preset-env")],
+    }))
+    .pipe(eslint({
+        'rules': {
+            'quotes': [0, 'single'], // 单引号
+            'semi': [1, 'always'], // 行尾部分号
+            "no-console": 1 // 禁用 console
+        }
+    }))
+    .pipe(eslint.format())
+    .pipe(eslint.failOnError())
 }
 
 const serve = () => {
@@ -92,7 +102,7 @@ const serve = () => {
 
   bs.init({
     notify: false,
-    port: 8080,
+    port: 5210,
     // open: false,
     files: 'dist/**',
     server: {
@@ -119,7 +129,12 @@ const useref = () => {
     .pipe(dest('dist'))
 }
 
-const compile = parallel(style, script, page)
+const upload = () => {
+  return src('**')
+    .pipe(plugins.ghPages())
+}
+
+const compile = parallel(style, script, page, lint)
 
 // 上线前执行的任务
 const build =  series(
@@ -132,11 +147,16 @@ const build =  series(
   )
 )
 
+const deploy = series(build, upload)
+
 const start = series(compile, serve)
 
 module.exports = {
   clean,
   build,
   start,
-  serve
+  serve,
+  lint,
+  deploy,
+  upload
 }
