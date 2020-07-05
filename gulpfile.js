@@ -70,6 +70,13 @@ const extra = () => {
     .pipe(dest('dist'))
 }
 
+const lint = () => {
+  return src(['scripts/*.js'], { base: 'src' })
+  .pipe(plugins.eslint())
+  .pipe(eslint.format())
+  .pipe(eslint.failAterError());
+}
+
 const serve = () => {
   watch('src/assets/styles/*.scss', style)
   watch('src/assets/scripts/*.js', script)
@@ -87,8 +94,10 @@ const serve = () => {
     notify: false,
     port: 8080,
     // open: false,
+    files: 'dist/**',
     server: {
-      baseDir: ['dist', 'src', 'public'],
+      // baseDir: ['dist', 'src', 'public'],
+      baseDir: 'dist',
       routes: {
         '/node_modules': 'node_modules'
       }
@@ -124,11 +133,10 @@ const build =  series(
 )
 
 const start = series(compile, serve)
-const serve = series(compile, serve)
 
 module.exports = {
   clean,
   build,
   start,
-  // serve
+  serve
 }
