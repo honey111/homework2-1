@@ -91,9 +91,9 @@ const serve = () => {
   watch('src/assets/styles/*.scss', style)
   watch('src/assets/scripts/*.js', script)
   watch('src/*.html', page)
-  // watch('src/assets/images/**', image)
-  // watch('src/assets/fonts/**', font)
-  // watch('public/**', extra)
+  watch('src/assets/images/**', image)
+  watch('src/assets/fonts/**', font)
+  watch('public/**', extra)
   watch([
     'src/assets/images/**',
     'src/assets/fonts/**',
@@ -130,8 +130,12 @@ const useref = () => {
 }
 
 const upload = () => {
-  return src('**')
-    .pipe(plugins.ghPages())
+  return src('dist/**')
+    .pipe(plugins.ghPages([
+      {
+        branch: 'gh-pages'
+      }
+    ]))
 }
 
 const compile = parallel(style, script, page, lint)
